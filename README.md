@@ -9,6 +9,9 @@ The project is organized into three main layers:
 * **React Dashboard** for user interaction.
 
 ---
+## Live Demo
+
+🌐 **Demo:** https://agentguild.netlify.app
 
 ## Project Structure
 
