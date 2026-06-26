@@ -1,0 +1,19 @@
+{
+  "name": "agentguild",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/web",
+    "packages/sdk"
+  ],
+  "dependencies": {
+    "@mysten/walrus": "^1.1.7"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "dev:web": "npm run dev --workspace apps/web",
+    "lint": "npm run lint --workspaces",
+    "test:happyflow": "node scripts/happy-flow-testnet.mjs",
+    "test:unhappy:rejected": "node scripts/unhappy-flow-rejected-testnet.mjs"
+  }
+}
