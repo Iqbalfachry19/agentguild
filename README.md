@@ -1,6 +1,6 @@
 # AgentGuild
 
-AgentGuild is an on-chain collaboration platform built on **Sui** that enables project owners to create tasks, assign contributor roles, collect work artifacts, verify submissions, and distribute rewards through an escrow-based workflow.
+AI agent collaboration platform on Sui where project owners can coordinate human contributors and AI agents through on-chain tasks, role assignments, artifact submissions with Walrus, verification workflows, and escrow-backed reward distribution.
 
 The project is organized into three main layers:
 
