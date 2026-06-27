@@ -7,9 +7,7 @@ import {
   useSuiClient,
 } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
-import {
-  type TaskStatus,
-} from "@agentguild/sdk";
+import { type TaskStatus } from "@agentguild/sdk";
 import {
   SUI_CLOCK_OBJECT_ID,
   TESTNET_AGENTGUILD_BOARD_ID,
@@ -46,9 +44,13 @@ export function App() {
   const [roleLabel, setRoleLabel] = useState("Analyst");
   const [roleRewardSui, setRoleRewardSui] = useState("2");
   const [profileHandle, setProfileHandle] = useState("agent.handle");
-  const [profileMetadataUri, setProfileMetadataUri] = useState("https://example.com/agent.json");
+  const [profileMetadataUri, setProfileMetadataUri] = useState(
+    "https://example.com/agent.json",
+  );
   const [taskTitle, setTaskTitle] = useState("New Agent Task");
-  const [taskDescription, setTaskDescription] = useState("Define deliverables and acceptance criteria.");
+  const [taskDescription, setTaskDescription] = useState(
+    "Define deliverables and acceptance criteria.",
+  );
   const [taskVerifier, setTaskVerifier] = useState("");
   const [taskBudgetSui, setTaskBudgetSui] = useState("5");
   const [taskDeadline, setTaskDeadline] = useState("");
@@ -61,9 +63,15 @@ export function App() {
   const [walletBalanceSui, setWalletBalanceSui] = useState("0");
   const [escrowByTask, setEscrowByTask] = useState<Record<string, string>>({});
   const [resolverTaskId, setResolverTaskId] = useState("");
-  const [resolvedTasks, setResolvedTasks] = useState<Array<{ id: string; title: string }>>([]);
-  const [resolvedRoles, setResolvedRoles] = useState<Array<{ id: string; taskId: string; label: string }>>([]);
-  const [resolvedEscrows, setResolvedEscrows] = useState<Array<{ id: string; taskId: string }>>([]);
+  const [resolvedTasks, setResolvedTasks] = useState<
+    Array<{ id: string; title: string }>
+  >([]);
+  const [resolvedRoles, setResolvedRoles] = useState<
+    Array<{ id: string; taskId: string; label: string }>
+  >([]);
+  const [resolvedEscrows, setResolvedEscrows] = useState<
+    Array<{ id: string; taskId: string }>
+  >([]);
   const [resolverLoading, setResolverLoading] = useState(false);
   const [tasks, setTasks] = useState<
     Array<{
@@ -80,22 +88,64 @@ export function App() {
       payoutClaimed: boolean;
     }>
   >([]);
-  const [roles, setRoles] = useState<Array<{ id: string; taskId: string; label: string; rewardMist: bigint; assignee?: string; approved: boolean }>>([]);
-  const [artifacts, setArtifacts] = useState<Array<{ id: string; taskId: string; roleId: string; submitter: string; uri: string; contentHash: string; createdMs: number; status: number; reviewedMs: number }>>([]);
-  const [profiles, setProfiles] = useState<Array<{ id: string; owner: string; handle: string; metadataUri: string; completedTasks: number; approvals: number }>>([]);
+  const [roles, setRoles] = useState<
+    Array<{
+      id: string;
+      taskId: string;
+      label: string;
+      rewardMist: bigint;
+      assignee?: string;
+      approved: boolean;
+    }>
+  >([]);
+  const [artifacts, setArtifacts] = useState<
+    Array<{
+      id: string;
+      taskId: string;
+      roleId: string;
+      submitter: string;
+      uri: string;
+      contentHash: string;
+      createdMs: number;
+      status: number;
+      reviewedMs: number;
+    }>
+  >([]);
+  const [profiles, setProfiles] = useState<
+    Array<{
+      id: string;
+      owner: string;
+      handle: string;
+      metadataUri: string;
+      completedTasks: number;
+      approvals: number;
+    }>
+  >([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const selectedTask = useMemo(() => tasks.find((task) => task.id === selectedTaskId), [selectedTaskId, tasks]);
-  const selectedRoles = useMemo(() => roles.filter((role) => role.taskId === selectedTaskId), [selectedTaskId, roles]);
+  const selectedTask = useMemo(
+    () => tasks.find((task) => task.id === selectedTaskId),
+    [selectedTaskId, tasks],
+  );
+  const selectedRoles = useMemo(
+    () => roles.filter((role) => role.taskId === selectedTaskId),
+    [selectedTaskId, roles],
+  );
   const selectedArtifacts = useMemo(
     () => artifacts.filter((artifact) => artifact.taskId === selectedTaskId),
-    [selectedTaskId, artifacts]
+    [selectedTaskId, artifacts],
   );
-  const selectedTaskForClaim = useMemo(() => tasks.find((task) => task.id === claimTaskId), [tasks, claimTaskId]);
-  const selectedRoleForClaim = useMemo(() => roles.find((role) => role.id === claimRoleId), [roles, claimRoleId]);
+  const selectedTaskForClaim = useMemo(
+    () => tasks.find((task) => task.id === claimTaskId),
+    [tasks, claimTaskId],
+  );
+  const selectedRoleForClaim = useMemo(
+    () => roles.find((role) => role.id === claimRoleId),
+    [roles, claimRoleId],
+  );
   const autoProfileId = profiles[0]?.id ?? "";
-  const autoEscrowId = claimTaskId ? escrowByTask[claimTaskId] ?? "" : "";
+  const autoEscrowId = claimTaskId ? (escrowByTask[claimTaskId] ?? "") : "";
   const resolvedEscrowId = claimEscrowId || autoEscrowId;
   const resolvedProfileId = claimProfileId || autoProfileId;
   const claimableMist =
@@ -109,22 +159,22 @@ export function App() {
       : 0n;
   const claimStatus =
     !claimTaskId || !claimRoleId
-      ? "Pilih task dan role dulu."
+      ? "Please select a task and role first."
       : !selectedTaskForClaim || !selectedRoleForClaim
-      ? "Task/role belum ketemu di on-chain cache."
-      : selectedTaskForClaim.status !== "closed"
-      ? "Task belum closed (finalize dulu)."
-      : selectedTaskForClaim.payoutClaimed
-      ? "Reward task ini sudah pernah di-claim."
-      : !selectedRoleForClaim.approved
-      ? "Role belum approved (masih rejected/pending)."
-      : selectedRoleForClaim.assignee !== account?.address
-      ? "Wallet ini bukan assignee role."
-      : !resolvedEscrowId
-      ? "Escrow ID belum ada, isi manual atau fund dari UI ini."
-      : !resolvedProfileId
-      ? "Profile ID belum ada, create profile dulu."
-      : "Ready to claim";
+        ? "Task/role not found in the on-chain cache."
+        : selectedTaskForClaim.status !== "closed"
+          ? "Task is not closed yet (finalize it first)."
+          : selectedTaskForClaim.payoutClaimed
+            ? "The reward for this task has already been claimed."
+            : !selectedRoleForClaim.approved
+              ? "The role has not been approved yet (currently rejected or pending)."
+              : selectedRoleForClaim.assignee !== account?.address
+                ? "This wallet is not the assignee for this role."
+                : !resolvedEscrowId
+                  ? "Escrow ID is not available yet. Enter it manually or fund the task from this UI."
+                  : !resolvedProfileId
+                    ? "Profile ID is not available yet. Create a profile first."
+                    : "Ready to claim";
 
   const walletReady = !!account?.address;
   const contractReady = !!AGENTGUILD.packageId;
@@ -179,7 +229,12 @@ export function App() {
         options: { showContent: true },
       });
 
-      const boardFields = (board.data?.content as { fields?: Record<string, unknown> } | undefined)?.fields ?? {};
+      const boardFields =
+        (
+          board.data?.content as
+            | { fields?: Record<string, unknown> }
+            | undefined
+        )?.fields ?? {};
       const taskIds = normalizeIdVector(boardFields.task_ids);
       if (taskIds.length === 0) {
         setTasks([]);
@@ -197,14 +252,22 @@ export function App() {
         setTasks(nextTasks);
 
         const roleIds = [...new Set(nextTasks.flatMap((t) => t.roleIds))];
-        const artifactIds = [...new Set(nextTasks.flatMap((t) => t.artifactIds))];
+        const artifactIds = [
+          ...new Set(nextTasks.flatMap((t) => t.artifactIds)),
+        ];
 
         if (roleIds.length > 0) {
           const roleObjs = await suiClient.multiGetObjects({
             ids: roleIds,
             options: { showContent: true },
           });
-          setRoles(roleObjs.map((obj) => parseRole(obj.data?.objectId ?? "", obj.data?.content)).filter((x): x is NonNullable<typeof x> => !!x));
+          setRoles(
+            roleObjs
+              .map((obj) =>
+                parseRole(obj.data?.objectId ?? "", obj.data?.content),
+              )
+              .filter((x): x is NonNullable<typeof x> => !!x),
+          );
         } else {
           setRoles([]);
         }
@@ -216,8 +279,10 @@ export function App() {
           });
           setArtifacts(
             artifactObjs
-              .map((obj) => parseArtifact(obj.data?.objectId ?? "", obj.data?.content))
-              .filter((x): x is NonNullable<typeof x> => !!x)
+              .map((obj) =>
+                parseArtifact(obj.data?.objectId ?? "", obj.data?.content),
+              )
+              .filter((x): x is NonNullable<typeof x> => !!x),
           );
         } else {
           setArtifacts([]);
@@ -226,23 +291,30 @@ export function App() {
 
       if (account?.address) {
         const bal = await suiClient.getBalance({ owner: account.address });
-        setWalletBalanceSui((Number(bal.totalBalance) / 1_000_000_000).toFixed(4));
+        setWalletBalanceSui(
+          (Number(bal.totalBalance) / 1_000_000_000).toFixed(4),
+        );
         const ownedProfiles = await suiClient.getOwnedObjects({
           owner: account.address,
-          filter: { StructType: `${AGENTGUILD.packageId}::profile::AgentProfile` },
+          filter: {
+            StructType: `${AGENTGUILD.packageId}::profile::AgentProfile`,
+          },
           options: { showContent: true },
         });
         setProfiles(
           ownedProfiles.data
-            .map((entry) => parseProfile(entry.data?.objectId ?? "", entry.data?.content))
-            .filter((x): x is NonNullable<typeof x> => !!x)
+            .map((entry) =>
+              parseProfile(entry.data?.objectId ?? "", entry.data?.content),
+            )
+            .filter((x): x is NonNullable<typeof x> => !!x),
         );
       } else {
         setProfiles([]);
         setWalletBalanceSui("0");
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to load on-chain data";
+      const msg =
+        e instanceof Error ? e.message : "Failed to load on-chain data";
       setStatusText(msg);
     } finally {
       setLoading(false);
@@ -286,7 +358,9 @@ export function App() {
         setResolvedTasks([]);
         setResolvedRoles([]);
         setResolvedEscrows([]);
-        setStatusText("Resolver: no AgentGuild objects found in recent tx history.");
+        setStatusText(
+          "Resolver: no AgentGuild objects found in recent tx history.",
+        );
         return;
       }
 
@@ -296,13 +370,19 @@ export function App() {
       });
 
       const nextTasks: Array<{ id: string; title: string }> = [];
-      const nextRoles: Array<{ id: string; taskId: string; label: string }> = [];
+      const nextRoles: Array<{ id: string; taskId: string; label: string }> =
+        [];
       const nextEscrows: Array<{ id: string; taskId: string }> = [];
 
       for (const obj of objs) {
         const id = obj.data?.objectId ?? "";
         const objectType = String(obj.data?.type ?? "");
-        const fields = (obj.data?.content as { fields?: Record<string, unknown> } | undefined)?.fields ?? {};
+        const fields =
+          (
+            obj.data?.content as
+              | { fields?: Record<string, unknown> }
+              | undefined
+          )?.fields ?? {};
         if (objectType.endsWith("::task::Task")) {
           nextTasks.push({ id, title: String(fields.title ?? "") });
         } else if (objectType.endsWith("::task::Role")) {
@@ -336,9 +416,13 @@ export function App() {
       }
       if (profiles[0]?.id) setClaimProfileId((prev) => prev || profiles[0]!.id);
 
-      setStatusText("Resolver selesai: task/role/escrow berhasil discan dari history.");
+      setStatusText(
+        "Resolver completed: task, role, and escrow were successfully scanned from transaction history.",
+      );
     } catch (e) {
-      setStatusText(e instanceof Error ? `Resolver error: ${e.message}` : "Resolver error");
+      setStatusText(
+        e instanceof Error ? `Resolver error: ${e.message}` : "Resolver error",
+      );
     } finally {
       setResolverLoading(false);
     }
@@ -350,15 +434,25 @@ export function App() {
         <h1>AgentGuild</h1>
         <p>Autonomous task guilds with proof-backed payouts.</p>
         <ConnectButton />
-        <p className="wallet-line">Wallet: {account ? short(account.address) : "Not connected"}</p>
+        <p className="wallet-line">
+          Wallet: {account ? short(account.address) : "Not connected"}
+        </p>
         <p className="wallet-line">SUI Balance: {walletBalanceSui}</p>
-        <p className="wallet-line">Connector: {currentWallet.currentWallet?.name ?? "None"}</p>
-        {currentWallet.currentWallet && !currentWallet.currentWallet.name.toLowerCase().includes("slush") && (
-          <p className="wallet-line warn">Use Slush wallet for this demo flow.</p>
-        )}
+        <p className="wallet-line">
+          Connector: {currentWallet.currentWallet?.name ?? "None"}
+        </p>
+        {currentWallet.currentWallet &&
+          !currentWallet.currentWallet.name.toLowerCase().includes("slush") && (
+            <p className="wallet-line warn">
+              Use Slush wallet for this demo flow.
+            </p>
+          )}
 
         <nav>
-          <button className={panel === "tasks" ? "nav-btn active" : "nav-btn"} onClick={() => setPanel("tasks")}>
+          <button
+            className={panel === "tasks" ? "nav-btn active" : "nav-btn"}
+            onClick={() => setPanel("tasks")}
+          >
             Task Board
           </button>
           <button
@@ -378,12 +472,19 @@ export function App() {
 
       <main className="content">
         <div className="status">{statusText}</div>
-        <div className="status">{loading ? "Loading on-chain data..." : `On-chain loaded: ${tasks.length} tasks`}</div>
+        <div className="status">
+          {loading
+            ? "Loading on-chain data..."
+            : `On-chain loaded: ${tasks.length} tasks`}
+        </div>
         {panel === "tasks" && (
           <section className="panel">
             <header className="panel-head">
               <h2>Live Tasks</h2>
-              <select value={selectedTaskId} onChange={(e) => setSelectedTaskId(e.target.value)}>
+              <select
+                value={selectedTaskId}
+                onChange={(e) => setSelectedTaskId(e.target.value)}
+              >
                 {tasks.map((task) => (
                   <option key={task.id} value={task.id}>
                     {task.title}
@@ -396,12 +497,20 @@ export function App() {
               <article className="card">
                 <div className="card-head">
                   <h3>{selectedTask.title}</h3>
-                  <span className={STATUS_STYLES[selectedTask.status]}>{selectedTask.status}</span>
+                  <span className={STATUS_STYLES[selectedTask.status]}>
+                    {selectedTask.status}
+                  </span>
                 </div>
                 <p>{selectedTask.description}</p>
                 <div className="meta">
-                  <span>Budget: {Number(selectedTask.budgetMist) / 1_000_000_000} SUI</span>
-                  <span>Deadline: {new Date(selectedTask.deadlineMs).toLocaleString()}</span>
+                  <span>
+                    Budget: {Number(selectedTask.budgetMist) / 1_000_000_000}{" "}
+                    SUI
+                  </span>
+                  <span>
+                    Deadline:{" "}
+                    {new Date(selectedTask.deadlineMs).toLocaleString()}
+                  </span>
                 </div>
               </article>
             )}
@@ -410,7 +519,11 @@ export function App() {
               <h3>Create Profile</h3>
               <label>
                 Handle
-                <input value={profileHandle} onChange={(e) => setProfileHandle(e.target.value)} placeholder="agent.handle" />
+                <input
+                  value={profileHandle}
+                  onChange={(e) => setProfileHandle(e.target.value)}
+                  placeholder="agent.handle"
+                />
               </label>
               <label>
                 Metadata URI
@@ -425,7 +538,10 @@ export function App() {
                   const tx = new Transaction();
                   tx.moveCall({
                     target: `${AGENTGUILD.packageId}::profile::create_profile`,
-                    arguments: [tx.pure.string(profileHandle), tx.pure.string(profileMetadataUri)],
+                    arguments: [
+                      tx.pure.string(profileHandle),
+                      tx.pure.string(profileMetadataUri),
+                    ],
                   });
                   await execTx(tx);
                 }}
@@ -438,7 +554,11 @@ export function App() {
               <h3>Create Task</h3>
               <label>
                 Title
-                <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="Task title" />
+                <input
+                  value={taskTitle}
+                  onChange={(e) => setTaskTitle(e.target.value)}
+                  placeholder="Task title"
+                />
               </label>
               <label>
                 Description
@@ -458,11 +578,19 @@ export function App() {
               </label>
               <label>
                 Budget (SUI)
-                <input value={taskBudgetSui} onChange={(e) => setTaskBudgetSui(e.target.value)} placeholder="5" />
+                <input
+                  value={taskBudgetSui}
+                  onChange={(e) => setTaskBudgetSui(e.target.value)}
+                  placeholder="5"
+                />
               </label>
               <label>
                 Deadline
-                <input type="datetime-local" value={taskDeadline} onChange={(e) => setTaskDeadline(e.target.value)} />
+                <input
+                  type="datetime-local"
+                  value={taskDeadline}
+                  onChange={(e) => setTaskDeadline(e.target.value)}
+                />
               </label>
               <button
                 onClick={async () => {
@@ -470,7 +598,9 @@ export function App() {
                     setStatusText("Verifier address is required.");
                     return;
                   }
-                  const deadlineMs = taskDeadline ? new Date(taskDeadline).getTime() : Date.now() + 24 * 60 * 60 * 1000;
+                  const deadlineMs = taskDeadline
+                    ? new Date(taskDeadline).getTime()
+                    : Date.now() + 24 * 60 * 60 * 1000;
                   const tx = new Transaction();
                   tx.moveCall({
                     target: `${AGENTGUILD.packageId}::task::create_task`,
@@ -502,7 +632,11 @@ export function App() {
               </label>
               <label>
                 Amount (SUI)
-                <input value={fundAmountSui} onChange={(e) => setFundAmountSui(e.target.value)} placeholder="5" />
+                <input
+                  value={fundAmountSui}
+                  onChange={(e) => setFundAmountSui(e.target.value)}
+                  placeholder="5"
+                />
               </label>
               <button
                 onClick={async () => {
@@ -512,19 +646,30 @@ export function App() {
                     return;
                   }
                   const tx = new Transaction();
-                  const [payment] = tx.splitCoins(tx.gas, [tx.pure.u64(toMist(fundAmountSui))]);
+                  const [payment] = tx.splitCoins(tx.gas, [
+                    tx.pure.u64(toMist(fundAmountSui)),
+                  ]);
                   tx.moveCall({
                     target: `${AGENTGUILD.packageId}::escrow::fund_task`,
                     arguments: [tx.object(taskId), payment],
                   });
-                  const result = (await execTx(tx)) as
-                    | { objectChanges?: Array<{ type?: string; objectType?: string; objectId?: string }> }
-                    | null;
+                  const result = (await execTx(tx)) as {
+                    objectChanges?: Array<{
+                      type?: string;
+                      objectType?: string;
+                      objectId?: string;
+                    }>;
+                  } | null;
                   const escrowId = result?.objectChanges?.find(
-                    (c) => c.type === "created" && c.objectType?.endsWith("::escrow::Escrow")
+                    (c) =>
+                      c.type === "created" &&
+                      c.objectType?.endsWith("::escrow::Escrow"),
                   )?.objectId;
                   if (escrowId) {
-                    setEscrowByTask((prev) => ({ ...prev, [taskId]: escrowId }));
+                    setEscrowByTask((prev) => ({
+                      ...prev,
+                      [taskId]: escrowId,
+                    }));
                     setClaimTaskId(taskId);
                     setClaimEscrowId(escrowId);
                   }
@@ -538,11 +683,19 @@ export function App() {
               <h3>Add Role</h3>
               <label>
                 Role Label
-                <input value={roleLabel} onChange={(e) => setRoleLabel(e.target.value)} placeholder="Analyst" />
+                <input
+                  value={roleLabel}
+                  onChange={(e) => setRoleLabel(e.target.value)}
+                  placeholder="Analyst"
+                />
               </label>
               <label>
                 Reward (SUI)
-                <input value={roleRewardSui} onChange={(e) => setRoleRewardSui(e.target.value)} placeholder="2" />
+                <input
+                  value={roleRewardSui}
+                  onChange={(e) => setRoleRewardSui(e.target.value)}
+                  placeholder="2"
+                />
               </label>
               <button
                 onClick={async () => {
@@ -553,7 +706,13 @@ export function App() {
                     arguments: [
                       tx.object(selectedTask.id),
                       tx.pure.string(roleLabel),
-                      tx.pure.u64(BigInt(Math.floor(Number(roleRewardSui || "0") * 1_000_000_000))),
+                      tx.pure.u64(
+                        BigInt(
+                          Math.floor(
+                            Number(roleRewardSui || "0") * 1_000_000_000,
+                          ),
+                        ),
+                      ),
                     ],
                   });
                   await execTx(tx);
@@ -570,23 +729,30 @@ export function App() {
                   <li key={role.id}>
                     <div>
                       <strong>{role.label}</strong>
-                      <small>{Number(role.rewardMist) / 1_000_000_000} SUI</small>
+                      <small>
+                        {Number(role.rewardMist) / 1_000_000_000} SUI
+                      </small>
                     </div>
                     <div className="actions">
                       <button
-                      onClick={async () => {
+                        onClick={async () => {
                           if (!selectedTask) return;
                           const tx = new Transaction();
                           tx.moveCall({
                             target: `${AGENTGUILD.packageId}::task::join_role`,
-                            arguments: [tx.object(role.id), tx.object(selectedTask.id)],
+                            arguments: [
+                              tx.object(role.id),
+                              tx.object(selectedTask.id),
+                            ],
                           });
                           await execTx(tx);
                         }}
                       >
                         Join
                       </button>
-                      <div className="tag">{role.assignee ? short(role.assignee) : "Unassigned"}</div>
+                      <div className="tag">
+                        {role.assignee ? short(role.assignee) : "Unassigned"}
+                      </div>
                     </div>
                   </li>
                 ))}
@@ -645,13 +811,16 @@ export function App() {
             <article className="card">
               <h3>Claim Role Reward</h3>
               <div className="meta">
-                <span>Claimable: {(Number(claimableMist) / 1_000_000_000).toFixed(4)} SUI</span>
+                <span>
+                  Claimable:{" "}
+                  {(Number(claimableMist) / 1_000_000_000).toFixed(4)} SUI
+                </span>
                 <span>{claimStatus}</span>
               </div>
               <div className="resolver-box">
                 <strong>Escrow Resolver</strong>
                 <label>
-                  Task ID (opsional, untuk filter)
+                  Task ID (optional, for filtering)
                   <input
                     value={resolverTaskId}
                     onChange={(e) => setResolverTaskId(e.target.value)}
@@ -662,16 +831,25 @@ export function App() {
                   {resolverLoading ? "Scanning..." : "Scan Tx History"}
                 </button>
                 <small>
-                  Found: {resolvedTasks.length} task, {resolvedRoles.length} role, {resolvedEscrows.length} escrow
+                  Found: {resolvedTasks.length} task, {resolvedRoles.length}{" "}
+                  role, {resolvedEscrows.length} escrow
                 </small>
               </div>
               <label>
                 Task Object ID
-                <input value={claimTaskId} onChange={(e) => setClaimTaskId(e.target.value)} placeholder="0x..." />
+                <input
+                  value={claimTaskId}
+                  onChange={(e) => setClaimTaskId(e.target.value)}
+                  placeholder="0x..."
+                />
               </label>
               <label>
                 Role Object ID
-                <input value={claimRoleId} onChange={(e) => setClaimRoleId(e.target.value)} placeholder="0x..." />
+                <input
+                  value={claimRoleId}
+                  onChange={(e) => setClaimRoleId(e.target.value)}
+                  placeholder="0x..."
+                />
               </label>
               <label>
                 Escrow Object ID
@@ -692,8 +870,15 @@ export function App() {
               <button
                 disabled={claimStatus !== "Ready to claim"}
                 onClick={async () => {
-                  if (!claimTaskId || !claimRoleId || !resolvedEscrowId || !resolvedProfileId) {
-                    setStatusText("Task, role, escrow, and profile IDs are required.");
+                  if (
+                    !claimTaskId ||
+                    !claimRoleId ||
+                    !resolvedEscrowId ||
+                    !resolvedProfileId
+                  ) {
+                    setStatusText(
+                      "Task, role, escrow, and profile IDs are required.",
+                    );
                     return;
                   }
                   const tx = new Transaction();
@@ -746,59 +931,64 @@ export function App() {
                     const latestArtifact = roleArtifacts[0];
                     return (
                       <>
-                  <h3>{role.label}</h3>
-                  <p>Assignee: {role.assignee ? short(role.assignee) : "None"}</p>
-                  <p>Reward: {Number(role.rewardMist) / 1_000_000_000} SUI</p>
-                  <p>
-                    Latest Submission:{" "}
-                    {latestArtifact
-                      ? `${latestArtifact.uri} (${artifactStatusLabel(latestArtifact.status)})`
-                      : "No submission"}
-                  </p>
-                  <div className="actions">
-                    <button
-                      disabled={!latestArtifact}
-                      onClick={async () => {
-                        if (!selectedTask || !latestArtifact) return;
-                        const tx = new Transaction();
-                        tx.moveCall({
-                          target: `${AGENTGUILD.packageId}::artifact::verify_artifact`,
-                          arguments: [
-                            tx.object(selectedTask.id),
-                            tx.object(role.id),
-                            tx.object(latestArtifact.id),
-                            tx.pure.bool(true),
-                            tx.object(AGENTGUILD.clockId),
-                          ],
-                        });
-                        await execTx(tx);
-                      }}
-                    >
-                      Approve
-                    </button>
-                    <button
-                      className="ghost"
-                      disabled={!latestArtifact}
-                      onClick={async () => {
-                        if (!selectedTask || !latestArtifact) return;
-                        const tx = new Transaction();
-                        tx.moveCall({
-                          target: `${AGENTGUILD.packageId}::artifact::verify_artifact`,
-                          arguments: [
-                            tx.object(selectedTask.id),
-                            tx.object(role.id),
-                            tx.object(latestArtifact.id),
-                            tx.pure.bool(false),
-                            tx.object(AGENTGUILD.clockId),
-                          ],
-                        });
-                        await execTx(tx);
-                      }}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </>
+                        <h3>{role.label}</h3>
+                        <p>
+                          Assignee:{" "}
+                          {role.assignee ? short(role.assignee) : "None"}
+                        </p>
+                        <p>
+                          Reward: {Number(role.rewardMist) / 1_000_000_000} SUI
+                        </p>
+                        <p>
+                          Latest Submission:{" "}
+                          {latestArtifact
+                            ? `${latestArtifact.uri} (${artifactStatusLabel(latestArtifact.status)})`
+                            : "No submission"}
+                        </p>
+                        <div className="actions">
+                          <button
+                            disabled={!latestArtifact}
+                            onClick={async () => {
+                              if (!selectedTask || !latestArtifact) return;
+                              const tx = new Transaction();
+                              tx.moveCall({
+                                target: `${AGENTGUILD.packageId}::artifact::verify_artifact`,
+                                arguments: [
+                                  tx.object(selectedTask.id),
+                                  tx.object(role.id),
+                                  tx.object(latestArtifact.id),
+                                  tx.pure.bool(true),
+                                  tx.object(AGENTGUILD.clockId),
+                                ],
+                              });
+                              await execTx(tx);
+                            }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="ghost"
+                            disabled={!latestArtifact}
+                            onClick={async () => {
+                              if (!selectedTask || !latestArtifact) return;
+                              const tx = new Transaction();
+                              tx.moveCall({
+                                target: `${AGENTGUILD.packageId}::artifact::verify_artifact`,
+                                arguments: [
+                                  tx.object(selectedTask.id),
+                                  tx.object(role.id),
+                                  tx.object(latestArtifact.id),
+                                  tx.pure.bool(false),
+                                  tx.object(AGENTGUILD.clockId),
+                                ],
+                              });
+                              await execTx(tx);
+                            }}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </>
                     );
                   })()}
                 </div>
@@ -866,7 +1056,8 @@ function normalizeIdVector(value: unknown): string[] {
 }
 
 function parseTask(id: string, content: unknown) {
-  const fields = (content as { fields?: Record<string, unknown> } | undefined)?.fields;
+  const fields = (content as { fields?: Record<string, unknown> } | undefined)
+    ?.fields;
   if (!fields) return null;
   const status = Number(fields.status ?? 0);
   return {
@@ -885,7 +1076,8 @@ function parseTask(id: string, content: unknown) {
 }
 
 function parseRole(id: string, content: unknown) {
-  const fields = (content as { fields?: Record<string, unknown> } | undefined)?.fields;
+  const fields = (content as { fields?: Record<string, unknown> } | undefined)
+    ?.fields;
   if (!fields) return null;
   const assigneeObj = fields.assignee as { vec?: string[] } | undefined;
   return {
@@ -899,7 +1091,8 @@ function parseRole(id: string, content: unknown) {
 }
 
 function parseArtifact(id: string, content: unknown) {
-  const fields = (content as { fields?: Record<string, unknown> } | undefined)?.fields;
+  const fields = (content as { fields?: Record<string, unknown> } | undefined)
+    ?.fields;
   if (!fields) return null;
   return {
     id,
@@ -915,7 +1108,8 @@ function parseArtifact(id: string, content: unknown) {
 }
 
 function parseProfile(id: string, content: unknown) {
-  const fields = (content as { fields?: Record<string, unknown> } | undefined)?.fields;
+  const fields = (content as { fields?: Record<string, unknown> } | undefined)
+    ?.fields;
   if (!fields) return null;
   return {
     id,
